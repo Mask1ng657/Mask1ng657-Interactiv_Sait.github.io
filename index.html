@@ -7,81 +7,58 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-
-    <!-- 🔝 ВЕРХНИЙ БЛОК -->
-    <div class="page-top">
+    <header class="page-top">
         <h1>Лента времени</h1>
-        
         <div class="search-container">
             <div class="search-box">
-                <input type="text" 
-                       id="searchInput" 
-                       placeholder="Введите название события или год...">
+                <input type="text" id="searchInput" placeholder="Введите название события или год...">
                 <button id="searchButton">Найти</button>
-                <button id="clearSearchButton" style="display: none;">✕</button>
-
-                <!-- ✅ DROPDOWN -->
+                <button id="clearSearchButton" hidden>✕</button>
                 <div class="search-results-container" id="searchResultsContainer">
                     <div id="searchResults"></div>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- 📊 ТАЙМЛАЙН -->
-    <div class="timeline-container">
+    <main class="timeline-container">
         <div class="timeline" id="timeline"></div>
-    </div>
+    </main>
 
-    <!-- TOOLTIP -->
     <div class="tooltip" id="tooltip"></div>
 
-    <!-- 🔍 МОДАЛКА -->
-<div class="period-modal" id="periodModal">
-    <div class="modal-overlay" onclick="closePeriodModal()"></div>
-    <div class="modal-content">
-        
-        <div class="modal-header">
-            <h2 id="modalTitle"></h2>
-            <div class="modal-period" id="modalPeriod"></div>
-            <button class="modal-close" onclick="closePeriodModal()">✕</button>
-        </div>
-        
-<div class="modal-body">
-    
-    <!-- ЛЕВО -->
-    <div class="modal-text">
-        <div id="modalDescription"></div>
-
-        <!-- ИТОГИ -->
-        <div id="modalResults" class="modal-results"></div>
-    </div>
-
-    <!-- ПРАВО -->
-    <div class="modal-right">
-        <div class="modal-image" id="modalImage"></div>
-
-        <div class="modal-sides">
-            <h3 id="modalSidesTitle">⚔️ Стороны конфликта</h3>
-
-            <div class="sides-container">
-                <div class="side left">
-                    <h4 id="modalSideLeftTitle"></h4>
-                    <ul id="modalSideLeft"></ul>
+    <div class="period-modal" id="periodModal">
+        <div class="modal-overlay" onclick="closePeriodModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <div class="modal-period" id="modalPeriod"></div>
+                <button class="modal-close" onclick="closePeriodModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-text">
+                    <div id="modalDescription"></div>
+                    <div id="modalResults" class="modal-results"></div>
                 </div>
-
-                <div class="side right">
-                    <h4 id="modalSideRightTitle"></h4>
-                    <ul id="modalSideRight"></ul>
+                <div class="modal-right">
+                    <div class="modal-image" id="modalImage"></div>
+                    <div class="modal-sides">
+                        <h3 id="modalSidesTitle">⚔️ Стороны конфликта</h3>
+                        <div class="sides-container">
+                            <div class="side left">
+                                <h4 id="modalSideLeftTitle"></h4>
+                                <ul id="modalSideLeft"></ul>
+                            </div>
+                            <div class="side right">
+                                <h4 id="modalSideRightTitle"></h4>
+                                <ul id="modalSideRight"></ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-</div>
-
-    </div>
-</div>
 
     <script src="script.js"></script>
 </body>
