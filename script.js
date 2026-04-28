@@ -1,9 +1,8 @@
-// script.js
 document.addEventListener('DOMContentLoaded', function() {
 
 let tooltipPinned = false;
 
-    const flags = {
+const flags = {
   'Российская империя': 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Flag_of_Russia.svg/960px-Flag_of_Russia.svg.png?_=20250920154309',
   'Франция': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Flag_of_France.svg/40px-Flag_of_France.svg.png',
   'Великобритания': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Flag_of_the_United_Kingdom_%283-5%29.svg/40px-Flag_of_the_United_Kingdom_%283-5%29.svg.png',
@@ -162,491 +161,201 @@ let tooltipPinned = false;
   'Княжество Сербия': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Flag_of_Serbia_%281835%E2%80%931882%29.svg/40px-Flag_of_Serbia_%281835%E2%80%931882%29.svg.png',
   'Княжество Черногория': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Flag_of_Montenegro_%281860%E2%80%931905%29.svg/40px-Flag_of_Montenegro_%281860%E2%80%931905%29.svg.png',
   'Российская империя ': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Flag_of_Russia_%281858%E2%80%931896%29.svg/40px-Flag_of_Russia_%281858%E2%80%931896%29.svg.png',
+  'Германия ': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Flag_of_Germany.svg/250px-Flag_of_Germany.svg.png',
 };
+
     const timeline = document.getElementById('timeline');
     const tooltip = document.getElementById('tooltip');
-    tooltip.addEventListener('click', (e) => {
-    const item = e.target.closest('.tooltip-item');
-    if (!item) return;
-
-    e.stopPropagation();
-
-    const id = item.dataset.id;
-
-    console.log('Открываем:', id);
-
-    tooltipPinned = false;
-    hideTooltip();
-
-    openPeriodModal(id);
-});
     const searchResultsContainer = document.getElementById('searchResultsContainer');
     const clearSearchButton = document.getElementById('clearSearchButton');
-    
+
+    tooltip.addEventListener('click', (e) => {
+        const item = e.target.closest('.tooltip-item');
+        if (!item) return;
+        e.stopPropagation();
+        tooltipPinned = false;
+        hideTooltip();
+        openPeriodModal(item.dataset.id);
+    });
+
     // ========== НАСТРОЙКИ МАСШТАБА ==========
-    // Вы можете самостоятельно изменить эти значения для масштабирования событий
     const scaleConfig = {
-        // Минимальное и максимальное значение шкалы (0-100)
         minScale: 0,
         maxScale: 100,
-        
-        // Реальный временной диапазон (годы)
-        realTimeRange: {
-            start: 1700,
-            end: 2000
-        },
-        
-        // Настройки отображения периодов
+        realTimeRange: { start: 1700, end: 2000 },
         periodDisplay: {
-            minWidth: 0.3,      // Минимальная ширина периода в процентах
-            defaultHeight: 70,   // Стандартная высота периода в пикселях
-            emptyOpacity: 0.3    // Прозрачность пустых периодов
+            minWidth: 0.3,
+            defaultHeight: 70,
+            emptyOpacity: 0.3
         }
     };
 
-    
     // ========== ФУНКЦИИ МАСШТАБИРОВАНИЯ ==========
-    
-    // Конвертация реального года в значение шкалы (0-100)
     function yearToScale(realYear) {
-        return ((realYear - scaleConfig.realTimeRange.start) / 
-                (scaleConfig.realTimeRange.end - scaleConfig.realTimeRange.start)) * 
-                (scaleConfig.maxScale - scaleConfig.minScale) + 
+        return ((realYear - scaleConfig.realTimeRange.start) /
+                (scaleConfig.realTimeRange.end - scaleConfig.realTimeRange.start)) *
+                (scaleConfig.maxScale - scaleConfig.minScale) +
                 scaleConfig.minScale;
     }
-    
-// Конвертация значения шкалы (0-100) в реальный год
-function scaleToYear(scaleValue) {
-    // Точное соответствие для ключевых отметок
-    const exactMatches = {
-        0: 1700,
-        33: 1800,
-        66: 1900,
-        100: 2000
-    };
-    
-    // Проверяем, есть ли точное совпадение (с учетом погрешности)
-    for (const [scale, year] of Object.entries(exactMatches)) {
-        if (Math.abs(scaleValue - parseFloat(scale)) < 0.01) {
-            return year;
+
+    function scaleToYear(scaleValue) {
+        const exactMatches = { 0: 1700, 33: 1800, 66: 1900, 100: 2000 };
+        for (const [scale, year] of Object.entries(exactMatches)) {
+            if (Math.abs(scaleValue - parseFloat(scale)) < 0.01) return year;
         }
+        return scaleConfig.realTimeRange.start +
+               ((scaleValue - scaleConfig.minScale) /
+                (scaleConfig.maxScale - scaleConfig.minScale)) *
+                (scaleConfig.realTimeRange.end - scaleConfig.realTimeRange.start);
     }
-    
-    // Для остальных значений используем обычную формулу
-    return scaleConfig.realTimeRange.start + 
-           ((scaleValue - scaleConfig.minScale) / 
-            (scaleConfig.maxScale - scaleConfig.minScale)) * 
-            (scaleConfig.realTimeRange.end - scaleConfig.realTimeRange.start);
-}
-    
-    // Получение позиции в процентах для CSS (0-100%)
+
     function getPositionPercent(scaleValue) {
-        return ((scaleValue - scaleConfig.minScale) / 
+        return ((scaleValue - scaleConfig.minScale) /
                 (scaleConfig.maxScale - scaleConfig.minScale)) * 100;
     }
 
-    
-    
     // ========== ДАННЫЕ ПЕРИОДОВ ==========
     const periods = [
-        { 
-            startReal: 1700, 
-            endReal: 1721, 
-            title: 'Северная война', 
-            description: 'Россия разгромила Швецию, обеспечив себе выход к Балтийскому морю и статус великой державы (империи)', 
-            color: '#3498db',
-            // Можно добавить кастомный масштаб для конкретного периода
-            customScale: { start: 0, end: 11 }
-        },
-            { 
-            startReal: 1710, 
-            endReal: 1713, 
-            title: 'Русско-турецкая война (1710—1713)', 
-            description: 'Неудачный Прутский поход Петра I привел к временной потере Азова и приостановке экспансии на юг', 
-            color: '#34db4a',
-            customScale: { start: 6, end: 8 }
-        },
-            { 
-            startReal: 1722, 
-            endReal: 1723, 
-            title: 'Русско-персидская война (1722-1723)', 
-            description: 'В ходе Каспийского похода Россия временно заняла западное и южное побережья Каспийского моря', 
-            color: '#a71a01',
-            customScale: { start: 11, end: 12 }
-        },
-            { 
-            startReal: 1733, 
-            endReal: 1735, 
-            title: 'Война за польское наследство', 
-            description: 'Россия и Австрия добились утверждения на польском престоле своего ставленника Августа III, вытеснив французское влияние', 
-            color: '#627a0c',
-            customScale: { start: 12, end: 14 }
-        },
-            { 
-            startReal: 1735, 
-            endReal: 1739, 
-            title: 'Русско-турецкая война (1735—1739)', 
-            description: 'Несмотря на взятие Крыма и Очакова, Россия получила лишь Азов из-за выхода из войны союзной Австрии', 
-            color: '#db34a9',
-            customScale: { start: 14, end: 17 }
-        },
-        
-            { 
-            startReal: 1740, 
-            endReal: 1748, 
-            title: 'Война за австрийское наследство', 
-            description: 'Общеевропейский конфликт, по итогам которого Мария Терезия сохранила престол Габсбургов, но уступила Силезию Пруссии', 
-            color: '#ffeacc',
-            customScale: { start: 17, end: 22 }
-        },
-        { 
-            startReal: 1756, 
-            endReal: 1763, 
-            title: 'Семилетняя война', 
-            description: 'Глобальное столкновение, в котором Пруссия устояла благодаря смене власти в России, а Великобритания стала лидером колониального мира', 
-            color: '#2ecc71',
-            customScale: { start: 22, end: 26 }
-        },
-        { 
-            startReal: 1768, 
-            endReal: 1774, 
-            title: 'Русско-турецкая война (1768-1774)', 
-            description: 'Россия получила выход к Чёрному морю, право на флот и протекторат над Крымом по Кючук-Кайнарджийскому миру', 
-            color: '#a72ecc',
-            customScale: { start: 26, end: 29 }
-        },
-        { 
-            startReal: 1787, 
-            endReal: 1791, 
-            title: 'Русско-турецкая война (1787—1791)', 
-            description: 'Турция пыталась вернуть Крым, но была разгромлена, что закрепило за Россией всё Северное Причерноморье по Ясскому миру', 
-            color: '#c41212',
-            customScale: { start: 29, end: 33 }
-        },
-        { 
-            startReal: 1788, 
-            endReal: 1790, 
-            title: 'Русско-шведская война (1788—1790)', 
-            description: 'Швеция безуспешно пыталась вернуть утраченные в начале века земли, пока Россия была занята войной с Турцией', 
-            color: '#312ecc',
-            customScale: { start: 30, end: 32 }
-        },
-        { 
-            startReal: 1803, 
-            endReal: 1815, 
-            title: 'Наполеоновские войны', 
-            description: 'Масштабная борьба коалиций против французской гегемонии, закончившаяся крахом империи Наполеона и переустройством Европы', 
-            color: '#e74c3c',
-            customScale: { start: 33, end: 48 }
-        },
-        { 
-            startReal: 1806, 
-            endReal: 1812, 
-            title: 'Русско-турецкая война (1806-1812)', 
-            description: 'Завершилась Бухарестским миром и присоединением Бессарабии к России всего за месяц до вторжения Наполеона', 
-            color: '#4fd610',
-            customScale: { start: 36, end: 44 }
-        },
-        { 
-            startReal: 1826, 
-            endReal: 1828, 
-            title: 'Русско-персидская война (1826–1828)', 
-            description: 'Россия отразила нападение Ирана и присоединила территории Восточной Армении (Эривань и Нахичевань) по Туркманчайскому миру', 
-            color: '#10cfd6',
-            customScale: { start: 48, end: 51 }
-        },
-        { 
-            startReal: 1828, 
-            endReal: 1829, 
-            title: 'Русско-турецкая война (1828–1829)', 
-            description: 'Русские войска дошли почти до Константинополя, закрепив за Россией восточный берег Чёрного моря и автономию балканских народов', 
-            color: '#d6b210',
-            customScale: { start: 51, end: 54 }
-        },
-        { 
-            startReal: 1853, 
-            endReal: 1856, 
-            title: 'Крымская война', 
-            description: 'Коалиция западных держав нанесла России поражение, приведшее к временной нейтрализации Чёрного моря и глубоким внутренним реформам', 
-            color: '#9b59b6',
-            customScale: { start: 54, end: 62 }
-        },
-        { 
-            startReal: 1870, 
-            endReal: 1871, 
-            title: 'Франко-прусская война', 
-            description: 'Пруссия разгромила Францию, что позволило провозгласить создание Германской империи и коренным образом изменить баланс сил в Европе', 
-            color: '#492eac',
-            customScale: { start: 62, end: 64 }
-        },
-        { 
-            startReal: 1877, 
-            endReal: 1878, 
-            title: 'Русско-турецкая война (1877–1878)', 
-            description: 'Россия нанесла Турции решающее поражение, обеспечив независимость Болгарии, Сербии, Черногории и Румынии', 
-            color: '#d84400',
-            customScale: { start: 64, end: 66 }
-        },
-        { 
-            startReal: 1914, 
-            endReal: 1918, 
-            title: 'Первая мировая война', 
-            description: 'Глобальный военный конфликт между Антантой и Центральными державами', 
-            color: '#1abc9c',
-            customScale: { start: 66, end: 69 }
-        },
-        { 
-            startReal: 1917, 
-            endReal: 1921, 
-            title: 'Гражданская война в России', 
-            description: 'Кровавое внутреннее противостояние после революции, закончившееся победой большевиков и созданием СССР', 
-            color: '#d35400',
-            customScale: { start: 69, end: 72 }
-        },
-        { 
-            startReal: 1939, 
-            endReal: 1945, 
-            title: 'Вторая мировая война', 
-            description: 'Крупнейший конфликт в истории, завершившийся полным разгромом нацистской Германии и милитаристской Японии силами Антигитлеровской коалиции', 
-            color: '#78d300',
-            customScale: { start: 72, end: 79 }
-        },
-        { 
-            startReal: 1945, 
-            endReal: 1991, 
-            title: 'Холодная война', 
-            description: 'Глобальное идеологическое и геополитическое противостояние между сверхдержавами СССР и США без прямого военного столкновения', 
-            color: '#7700ff',
-            customScale: { start: 79, end: 93 }
-        },
-        { 
-            startReal: 1991, 
-            endReal: 2001, 
-            title: 'Югославские войны', 
-            description: 'Этнические и территориальные конфликты, сопровождавшие распад Югославии и приведшие к образованию новых независимых государств на Балканах', 
-            color: '#003061',
-            customScale: { start: 93, end: 100 }
-        },
+        { startReal: 1700, endReal: 1721, title: 'Северная война', description: 'Россия разгромила Швецию, обеспечив себе выход к Балтийскому морю и статус великой державы (империи)', color: '#3498db', customScale: { start: 0, end: 11 } },
+        { startReal: 1710, endReal: 1713, title: 'Русско-турецкая война (1710—1713)', description: 'Неудачный Прутский поход Петра I привел к временной потере Азова и приостановке экспансии на юг', color: '#34db4a', customScale: { start: 6, end: 8 } },
+        { startReal: 1722, endReal: 1723, title: 'Русско-персидская война (1722-1723)', description: 'В ходе Каспийского похода Россия временно заняла западное и южное побережья Каспийского моря', color: '#a71a01', customScale: { start: 11, end: 12 } },
+        { startReal: 1733, endReal: 1735, title: 'Война за польское наследство', description: 'Россия и Австрия добились утверждения на польском престоле своего ставленника Августа III, вытеснив французское влияние', color: '#627a0c', customScale: { start: 12, end: 14 } },
+        { startReal: 1735, endReal: 1739, title: 'Русско-турецкая война (1735—1739)', description: 'Несмотря на взятие Крыма и Очакова, Россия получила лишь Азов из-за выхода из войны союзной Австрии', color: '#db34a9', customScale: { start: 14, end: 17 } },
+        { startReal: 1740, endReal: 1748, title: 'Война за австрийское наследство', description: 'Общеевропейский конфликт, по итогам которого Мария Терезия сохранила престол Габсбургов, но уступила Силезию Пруссии', color: '#ffeacc', customScale: { start: 17, end: 22 } },
+        { startReal: 1756, endReal: 1763, title: 'Семилетняя война', description: 'Глобальное столкновение, в котором Пруссия устояла благодаря смене власти в России, а Великобритания стала лидером колониального мира', color: '#2ecc71', customScale: { start: 22, end: 26 } },
+        { startReal: 1768, endReal: 1774, title: 'Русско-турецкая война (1768-1774)', description: 'Россия получила выход к Чёрному морю, право на флот и протекторат над Крымом по Кючук-Кайнарджийскому миру', color: '#a72ecc', customScale: { start: 26, end: 29 } },
+        { startReal: 1787, endReal: 1791, title: 'Русско-турецкая война (1787—1791)', description: 'Турция пыталась вернуть Крым, но была разгромлена, что закрепило за Россией всё Северное Причерноморье по Ясскому миру', color: '#c41212', customScale: { start: 29, end: 33 } },
+        { startReal: 1788, endReal: 1790, title: 'Русско-шведская война (1788—1790)', description: 'Швеция безуспешно пыталась вернуть утраченные в начале века земли, пока Россия была занята войной с Турцией', color: '#312ecc', customScale: { start: 30, end: 32 } },
+        { startReal: 1803, endReal: 1815, title: 'Наполеоновские войны', description: 'Масштабная борьба коалиций против французской гегемонии, закончившаяся крахом империи Наполеона и переустройством Европы', color: '#e74c3c', customScale: { start: 33, end: 48 } },
+        { startReal: 1806, endReal: 1812, title: 'Русско-турецкая война (1806-1812)', description: 'Завершилась Бухарестским миром и присоединением Бессарабии к России всего за месяц до вторжения Наполеона', color: '#4fd610', customScale: { start: 36, end: 44 } },
+        { startReal: 1826, endReal: 1828, title: 'Русско-персидская война (1826–1828)', description: 'Россия отразила нападение Ирана и присоединила территории Восточной Армении (Эривань и Нахичевань) по Туркманчайскому миру', color: '#10cfd6', customScale: { start: 48, end: 51 } },
+        { startReal: 1828, endReal: 1829, title: 'Русско-турецкая война (1828–1829)', description: 'Русские войска дошли почти до Константинополя, закрепив за Россией восточный берег Чёрного моря и автономию балканских народов', color: '#d6b210', customScale: { start: 51, end: 54 } },
+        { startReal: 1853, endReal: 1856, title: 'Крымская война', description: 'Коалиция западных держав нанесла России поражение, приведшее к временной нейтрализации Чёрного моря и глубоким внутренним реформам', color: '#9b59b6', customScale: { start: 54, end: 62 } },
+        { startReal: 1870, endReal: 1871, title: 'Франко-прусская война', description: 'Пруссия разгромила Францию, что позволило провозгласить создание Германской империи и коренным образом изменить баланс сил в Европе', color: '#492eac', customScale: { start: 62, end: 64 } },
+        { startReal: 1877, endReal: 1878, title: 'Русско-турецкая война (1877–1878)', description: 'Россия нанесла Турции решающее поражение, обеспечив независимость Болгарии, Сербии, Черногории и Румынии', color: '#d84400', customScale: { start: 64, end: 66 } },
+        { startReal: 1914, endReal: 1918, title: 'Первая мировая война', description: 'Глобальный военный конфликт между Антантой и Центральными державами', color: '#1abc9c', customScale: { start: 66, end: 69 } },
+        { startReal: 1917, endReal: 1921, title: 'Гражданская война в России', description: 'Кровавое внутреннее противостояние после революции, закончившееся победой большевиков и созданием СССР', color: '#d35400', customScale: { start: 69, end: 72 } },
+        { startReal: 1939, endReal: 1945, title: 'Вторая мировая война', description: 'Крупнейший конфликт в истории, завершившийся полным разгромом нацистской Германии и милитаристской Японии силами Антигитлеровской коалиции', color: '#78d300', customScale: { start: 72, end: 79 } },
+        { startReal: 1945, endReal: 1991, title: 'Холодная война', description: 'Глобальное идеологическое и геополитическое противостояние между сверхдержавами СССР и США без прямого военного столкновения', color: '#7700ff', customScale: { start: 79, end: 93 } },
+        { startReal: 1991, endReal: 2001, title: 'Югославские войны', description: 'Этнические и территориальные конфликты, сопровождавшие распад Югославии и приведшие к образованию новых независимых государств на Балканах', color: '#003061', customScale: { start: 93, end: 100 } },
     ];
-    
- const timelineData = [
-    // Основные шкалы
-    { scale: 0, type: 'major', label: '1700' },
-    { scale: 33, type: 'major', label: '1800' },
-    { scale: 66, type: 'major', label: '1900' },
-    { scale: 100, type: 'major', label: '2000' },
+
+    const timelineData = [
+        { scale: 0,   type: 'major', label: '1700' },
+        { scale: 33,  type: 'major', label: '1800' },
+        { scale: 66,  type: 'major', label: '1900' },
+        { scale: 100, type: 'major', label: '2000' },
     ];
-    
-    // ========== ПРИМЕР НАСТРОЙКИ МАСШТАБА ДЛЯ КОНКРЕТНЫХ ПЕРИОДОВ ==========
-    // Раскомментируйте, если хотите задать кастомный масштаб для отдельных периодов
-    /*
-    periods[0].customScale = { start: 10, end: 25 };  // Северная война будет от 10 до 25
-    periods[1].customScale = { start: 30, end: 45 };  // Семилетняя война от 30 до 45
-    periods[2].customScale = { start: 50, end: 70 };  // Наполеоновские войны от 50 до 70
-    */
-    
-    // 🔍 СИСТЕМА ПОИСКА
+
     let currentSearch = {
         results: [],
-        currentPage: 1,
-        itemsPerPage: 5,
         activeIndex: -1,
-        searchTerm: '',
-        totalPages: 0
+        searchTerm: ''
     };
-    
-    
-    // Функция для получения значения масштаба для периода
+
+    // ========== ФУНКЦИИ МАСШТАБА ==========
     function getPeriodScale(period, isStart) {
-        if (period.customScale) {
-            return isStart ? period.customScale.start : period.customScale.end;
-        }
+        if (period.customScale) return isStart ? period.customScale.start : period.customScale.end;
         return isStart ? yearToScale(period.startReal) : yearToScale(period.endReal);
     }
-    
-    // Функция для получения всех уникальных точек шкалы
+
     function getAllScalePoints() {
-        const points = new Set();
-        points.add(scaleConfig.minScale);
-        points.add(scaleConfig.maxScale);
-        
+        const points = new Set([scaleConfig.minScale, scaleConfig.maxScale]);
         periods.forEach(period => {
-            points.add(getPeriodScale(period, true));  // start
-            points.add(getPeriodScale(period, false)); // end
+            points.add(getPeriodScale(period, true));
+            points.add(getPeriodScale(period, false));
         });
-        
         return Array.from(points).sort((a, b) => a - b);
     }
-    
-    // Функция для создания сегментов с учетом кастомного масштаба
+
     function createTimelineSegments() {
         const scalePoints = getAllScalePoints();
         const segments = [];
-        
-        // Создаем сегменты между каждой парой соседних точек
         for (let i = 0; i < scalePoints.length - 1; i++) {
             const segmentStartScale = scalePoints[i];
             const segmentEndScale = scalePoints[i + 1];
-            
-            // Конвертируем в реальные годы для поиска периодов
-            const segmentStartReal = Math.round(scaleToYear(segmentStartScale));
-            const segmentEndReal = Math.round(scaleToYear(segmentEndScale));
-            
-            // Находим все периоды, которые покрывают этот сегмент
-            const coveringPeriods = periods.filter(period => {
-                const periodStartScale = getPeriodScale(period, true);
-                const periodEndScale = getPeriodScale(period, false);
-                return periodStartScale <= segmentStartScale && periodEndScale >= segmentEndScale;
-            });
-            
+            const coveringPeriods = periods.filter(period =>
+                getPeriodScale(period, true) <= segmentStartScale &&
+                getPeriodScale(period, false) >= segmentEndScale
+            );
             segments.push({
                 startScale: segmentStartScale,
                 endScale: segmentEndScale,
-                startReal: segmentStartReal,
-                endReal: segmentEndReal,
+                startReal: Math.round(scaleToYear(segmentStartScale)),
+                endReal: Math.round(scaleToYear(segmentEndScale)),
                 periods: coveringPeriods,
                 width: segmentEndScale - segmentStartScale
             });
         }
-        
         return segments;
     }
-    
-    // Создание временной шкалы
+
     function createTimeline() {
         timeline.innerHTML = '';
-        
         const segments = createTimelineSegments();
-        
-        // Сортируем сегменты по начальной шкале
         segments.sort((a, b) => a.startScale - b.startScale);
-        
-        // Создаем элементы для каждого сегмента
-        segments.forEach(segment => {
-            const segmentElement = createSegmentElement(segment);
-            timeline.appendChild(segmentElement);
-        });
-        
+        segments.forEach(segment => timeline.appendChild(createSegmentElement(segment)));
         createScales();
     }
-    
-    // Создание элемента для сегмента
+
     function createSegmentElement(segment) {
-        const segmentElement = document.createElement('div');
-        
+        const el = document.createElement('div');
         const startPosition = getPositionPercent(segment.startScale);
-        const endPosition = getPositionPercent(segment.endScale);
-        const width = endPosition - startPosition;
-        
-        const minWidth = scaleConfig.periodDisplay.minWidth;
-        const finalWidth = Math.max(width, minWidth);
-        
-        segmentElement.className = 'period-area';
-        segmentElement.style.left = `${startPosition}%`;
-        segmentElement.style.width = `${finalWidth}%`;
-        segmentElement.style.top = '10px';
-        segmentElement.style.height = `${scaleConfig.periodDisplay.defaultHeight}px`;
-        
-        // Сохраняем реальные годы для отображения
-        segmentElement.dataset.startReal = segment.startReal;
-        segmentElement.dataset.endReal = segment.endReal;
-        segmentElement.dataset.startScale = segment.startScale;
-        segmentElement.dataset.endScale = segment.endScale;
-        
+        const width = getPositionPercent(segment.endScale) - startPosition;
+        const finalWidth = Math.max(width, scaleConfig.periodDisplay.minWidth);
+
+        el.className = 'period-area';
+        el.style.left = `${startPosition}%`;
+        el.style.width = `${finalWidth}%`;
+        el.style.top = '10px';
+        el.style.height = `${scaleConfig.periodDisplay.defaultHeight}px`;
+
+        el.dataset.startReal = segment.startReal;
+        el.dataset.endReal = segment.endReal;
+        el.dataset.startScale = segment.startScale;
+        el.dataset.endScale = segment.endScale;
+
         const periodCount = segment.periods.length;
-        
+
         if (periodCount === 0) {
-            // Пустой сегмент
-            segmentElement.style.backgroundColor = '#ecf0f1';
-            segmentElement.style.backgroundImage = 'none';
-            segmentElement.style.opacity = scaleConfig.periodDisplay.emptyOpacity;
-            segmentElement.style.cursor = 'default';
-            segmentElement.style.boxShadow = 'none';
-            
-            segmentElement.dataset.isEmpty = 'true';
-            segmentElement.dataset.fullTitle = ' ';
-            segmentElement.dataset.description = ' ';
-            
-            segmentElement.addEventListener('mouseenter', (e) => {
-                e.stopPropagation();
-                hideTooltip();
-            });
-        } 
-        else if (periodCount === 1) {
-            // Одиночный период
+            el.style.backgroundColor = '#ecf0f1';
+            el.style.opacity = scaleConfig.periodDisplay.emptyOpacity;
+            el.style.cursor = 'default';
+            el.dataset.isEmpty = 'true';
+            el.addEventListener('mouseenter', (e) => { e.stopPropagation(); hideTooltip(); });
+        } else if (periodCount === 1) {
             const period = segment.periods[0];
-            segmentElement.style.backgroundColor = period.color;
-            segmentElement.style.backgroundImage = 'none';
-            segmentElement.style.opacity = '1';
-            segmentElement.style.cursor = 'pointer';
-            
-            segmentElement.dataset.id = `${period.startReal}-${period.endReal}`;
-            segmentElement.dataset.fullTitle = period.title;
-            segmentElement.dataset.description = period.description;
-            segmentElement.dataset.startReal = period.startReal;
-            segmentElement.dataset.endReal = period.endReal;
-            segmentElement.dataset.color = period.color;
-            segmentElement.dataset.periodCount = '1';
-segment.periods.forEach((period, index) => {
-    const part = document.createElement('div');
+            el.style.backgroundColor = period.color;
+            el.style.cursor = 'pointer';
 
-    part.style.position = 'absolute';
-    part.style.top = 0;
-    part.style.bottom = 0;
+            el.dataset.id = `${period.startReal}-${period.endReal}`;
+            el.dataset.fullTitle = period.title;
+            el.dataset.description = period.description;
+            el.dataset.startReal = period.startReal;
+            el.dataset.endReal = period.endReal;
+            el.dataset.color = period.color;
+            el.dataset.periodCount = '1';
 
-    const widthPercent = 100 / segment.periods.length;
-    part.style.left = `${index * widthPercent}%`;
-    part.style.width = `${widthPercent}%`;
+            // Sub-parts for single period (keeps hover structure consistent)
+            segment.periods.forEach((p, index) => {
+                const part = document.createElement('div');
+                const widthPercent = 100 / segment.periods.length;
+                part.style.cssText = `position:absolute;top:0;bottom:0;left:${index * widthPercent}%;width:${widthPercent}%;background:${p.color};opacity:0.85;cursor:pointer;`;
+                part.dataset.id = `${p.startReal}-${p.endReal}`;
+                part.addEventListener('click', (e) => { e.stopPropagation(); openPeriodModal(part.dataset.id); });
+                el.appendChild(part);
+            });
 
-    part.style.background = period.color;
-    part.style.opacity = 0.85;
+            el.addEventListener('mouseenter', (e) => showPeriodTooltip(e, el));
+        } else {
+            el.style.background = createMultiColorPattern(segment.periods);
+            el.classList.add('overlap-area');
+            el.style.cursor = 'pointer';
 
-    part.style.cursor = 'pointer';
+            if (periodCount === 2) el.classList.add('overlap-2');
+            else if (periodCount === 3) el.classList.add('overlap-3');
+            else if (periodCount >= 4) el.classList.add('overlap-multiple');
 
-    part.dataset.id = `${period.startReal}-${period.endReal}`;
-
-    part.addEventListener('click', (e) => {
-        e.stopPropagation(); // 🔥 важно
-        openPeriodModal(part.dataset.id);
-    });
-
-    segmentElement.appendChild(part);
-});
-            
-            // Сохраняем масштаб периода если он кастомный
-            if (period.customScale) {
-                segmentElement.dataset.customScale = JSON.stringify(period.customScale);
-            }
-            
-            segmentElement.addEventListener('mouseenter', (e) => showPeriodTooltip(e, segmentElement));
-        } 
-        else {
-            // Несколько периодов - создаем паттерн
-            const pattern = createMultiColorPattern(segment.periods);
-            segmentElement.style.background = pattern;
-            segmentElement.classList.add('overlap-area');
-            segmentElement.style.opacity = '1';
-            segmentElement.style.cursor = 'pointer';
-    segmentElement.addEventListener('mouseenter', (e) => {
-        showOverlapTooltip(e, segmentElement);
-    });
-
-    // 👇 клик закрепляет тултип
-    segmentElement.addEventListener('click', (e) => {
-        e.stopPropagation();
-        tooltipPinned = true;
-    });
-            
-            // Добавляем класс для разного количества периодов
-            if (periodCount === 2) {
-                segmentElement.classList.add('overlap-2');
-            } else if (periodCount === 3) {
-                segmentElement.classList.add('overlap-3');
-            } else if (periodCount >= 4) {
-                segmentElement.classList.add('overlap-multiple');
-            }
-            
-            // Сохраняем информацию о всех периодах
             const periodsData = segment.periods.map(p => ({
                 id: `${p.startReal}-${p.endReal}`,
                 title: p.title,
@@ -656,680 +365,335 @@ segment.periods.forEach((period, index) => {
                 color: p.color,
                 customScale: p.customScale
             }));
-            
-            segmentElement.dataset.overlap = 'true';
-            segmentElement.dataset.periods = JSON.stringify(periodsData);
-            segmentElement.dataset.periodCount = periodCount.toString();
-            segmentElement.dataset.fullTitle = `${periodsData.map(p => p.title).join(' + ')}`;
-            segmentElement.dataset.description = `Период пересечения ${periodCount} событий: ${periodsData.map(p => p.title).join(', ')}`;
-            
-            // Создаем составной ID для поиска
-            const compositeId = periodsData.map(p => p.id).join('_');
-            segmentElement.dataset.id = compositeId;
-            
-            segmentElement.addEventListener('click', (e) => {
-    e.stopPropagation();
-    tooltipPinned = true;
-});
+
+            el.dataset.overlap = 'true';
+            el.dataset.periods = JSON.stringify(periodsData);
+            el.dataset.periodCount = periodCount.toString();
+            el.dataset.fullTitle = periodsData.map(p => p.title).join(' + ');
+            el.dataset.description = `Период пересечения ${periodCount} событий: ${periodsData.map(p => p.title).join(', ')}`;
+            el.dataset.id = periodsData.map(p => p.id).join('_');
+
+            el.addEventListener('mouseenter', (e) => showOverlapTooltip(e, el));
+            el.addEventListener('click', (e) => { e.stopPropagation(); tooltipPinned = true; });
         }
-        
-        segmentElement.addEventListener('mouseleave', hideTooltip);
-        
-        return segmentElement;
+
+        el.addEventListener('mouseleave', hideTooltip);
+        return el;
     }
-    
-function highlightPeriodOnTimeline(periodId) {
-    clearHighlight();
 
-    let target = null;
-
-    document.querySelectorAll('.period-area').forEach(el => {
-        if (
-            el.dataset.id === periodId ||
-            (el.dataset.periods && el.dataset.periods.includes(periodId))
-        ) {
-            el.classList.add('search-found');
-            el.style.zIndex = '9999';
-
-            if (!target) target = el;
-        }
-    });
-
-    if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}
-
-    // Создание паттерна для множества цветов
     function createMultiColorPattern(periods) {
         const colors = periods.map(p => p.color);
         const count = colors.length;
-        
-        if (count === 2) {
-            return `repeating-linear-gradient(45deg, 
-                ${colors[0]} 0px, 
-                ${colors[0]} 12px, 
-                ${colors[1]} 12px, 
-                ${colors[1]} 24px)`;
-        } 
-        else if (count === 3) {
-            return `repeating-linear-gradient(45deg, 
-                ${colors[0]} 0px, 
-                ${colors[0]} 8px, 
-                ${colors[1]} 8px, 
-                ${colors[1]} 16px, 
-                ${colors[2]} 16px, 
-                ${colors[2]} 24px)`;
-        }
-        else if (count === 4) {
-            return `repeating-linear-gradient(45deg, 
-                ${colors[0]} 0px, 
-                ${colors[0]} 6px, 
-                ${colors[1]} 6px, 
-                ${colors[1]} 12px, 
-                ${colors[2]} 12px, 
-                ${colors[2]} 18px, 
-                ${colors[3]} 18px, 
-                ${colors[3]} 24px)`;
-        }
-        else {
-            const segmentSize = 30;
-            const step = segmentSize / count;
-            let gradientStops = [];
-            
-            for (let i = 0; i < count; i++) {
-                const start = i * step;
-                const end = (i + 1) * step;
-                gradientStops.push(`${colors[i]} ${start}px`);
-                gradientStops.push(`${colors[i]} ${end}px`);
-            }
-            
-            return `repeating-linear-gradient(45deg, ${gradientStops.join(', ')})`;
-        }
+        const segmentSize = count <= 4 ? 24 : 30;
+        const step = segmentSize / count;
+        const stops = colors.flatMap((c, i) => [`${c} ${i * step}px`, `${c} ${(i + 1) * step}px`]);
+        return `repeating-linear-gradient(45deg, ${stops.join(', ')})`;
     }
-    
-    // Показ тултипа для пересекающейся области
-    function showOverlapTooltip(e, element) {
-        tooltipType = 'overlap'; // 👈 добавь
-        const periodsData = JSON.parse(element.dataset.periods);
-        const periodCount = periodsData.length;
-        
-        const segmentStartReal = parseInt(element.dataset.startReal);
-        const segmentEndReal = parseInt(element.dataset.endReal);
-        const segmentDuration = segmentEndReal - segmentStartReal;
-        const segmentYearsText = segmentDuration === 1 ? 'год' : 
-                                  segmentDuration < 5 ? 'года' : 'лет';
-        
-        let tooltipHTML = `
-            <div style="border-left: 4px solid #ff6b6b; padding-left: 12px;">
-                <strong style="font-size: 16px;">📅 Пересечение ${periodCount} событий</strong>
-                <div style="margin-top: 6px; font-size: 12px; color: #ffd966;">
-                    ⏱️ Период одновременного действия
-                </div>
-                <div style="margin-top: 8px; font-size: 11px; color: #bdc3c7;">
-                    📍 ${segmentStartReal} - ${segmentEndReal} (${segmentDuration} ${segmentYearsText})
-                </div>
-                <div style="margin-top: 4px; font-size: 10px; color: #95a5a6;">
-        `;
-        
-        periodsData.forEach((period) => {
-            const periodDuration = period.endReal - period.startReal;
-            const periodYearsText = periodDuration === 1 ? 'год' : 
-                                     periodDuration < 5 ? 'года' : 'лет';
-            
-            let scaleInfo = '';
-            if (period.customScale) {
-                scaleInfo = `<div style="margin-top: 3px; font-size: 9px; color: #95a5a6;">
-                            </div>`;
-            }
-            
-            tooltipHTML += `
-                <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 3px solid ${period.color};">
-                    <strong 
-    class="tooltip-item"
-    data-id="${period.id}"
-    style="color: ${period.color}; cursor: pointer;"
->
-    ${period.title}
-</strong>
-                    <div style="margin-top: 4px; font-size: 11px; line-height: 1.3;">${period.description}</div>
-                    <div style="margin-top: 5px; font-size: 10px; color: #bdc3c7;">
-                        📅 Полный период: ${period.startReal} - ${period.endReal} (${periodDuration} ${periodYearsText})
-                    </div>
-                    ${scaleInfo}
-                </div>
 
-            
-            `;
-        });
-        
-        tooltipHTML += `</div>`;
-        
-        tooltip.innerHTML = tooltipHTML;
-        tooltip.style.opacity = '1';
-        highlightOverlappingPeriods(element);
-        positionTooltip(e, element);
+    // ========== ТУЛТИПЫ ==========
+    function yearsText(duration) {
+        return duration === 1 ? 'год' : duration < 5 ? 'года' : 'лет';
     }
-    
-    // Показ тултипа для одиночного периода
+
     function showPeriodTooltip(e, element) {
-        tooltipType = 'single';
-        const title = element.dataset.fullTitle;
-        const description = element.dataset.description;
+        const { fullTitle: title, description, color } = element.dataset;
         const startReal = parseInt(element.dataset.startReal);
         const endReal = parseInt(element.dataset.endReal);
-        const color = element.dataset.color;
-        
         const duration = endReal - startReal;
-        const yearsText = duration === 1 ? 'год' : duration < 5 ? 'года' : 'лет';
-        
-        let scaleInfo = '';
-        if (element.dataset.customScale) {
-            const customScale = JSON.parse(element.dataset.customScale);
-            scaleInfo = `<div style="margin-top: 5px; font-size: 10px; color: #95a5a6;">
-                         </div>`;
-        }
-        
+
         tooltip.innerHTML = `
             <div style="border-left: 4px solid ${color}; padding-left: 10px;">
                 <strong>${title}</strong>
                 <div style="margin-top: 5px; font-size: 12px;">${description}</div>
-                <div style="margin-top: 8px; font-size: 12px;">
-                    📅 Период: ${startReal} - ${endReal} (${duration} ${yearsText})
-                </div>
-                ${scaleInfo}
-            </div>
-        `;
-        
+                <div style="margin-top: 8px; font-size: 12px;">📅 Период: ${startReal} - ${endReal} (${duration} ${yearsText(duration)})</div>
+            </div>`;
         tooltip.style.opacity = '1';
         highlightOverlappingPeriods(element);
         positionTooltip(e, element);
     }
-    
-// Создание шкал времени
-function createScales() {
-    timelineData.forEach(item => {
-        const scale = document.createElement('div');
-        const position = getPositionPercent(item.scale);
-        
-        scale.className = `scale ${item.type}`;
-        scale.style.left = `${position}%`;
-        scale.dataset.scale = item.scale;
-        scale.dataset.year = Math.round(scaleToYear(item.scale));
-        
-        const label = document.createElement('div');
-        label.className = 'scale-label';
-        label.textContent = item.label;
-        scale.appendChild(label);
-        
-        scale.addEventListener('mouseenter', (e) => showScaleTooltip(e, scale));
-        scale.addEventListener('mouseleave', hideTooltip);
-        
-        timeline.appendChild(scale);
-    });
-}
-    
-function showScaleTooltip(e, element) {
-    const scaleValue = parseFloat(element.dataset.scale);
-    const realYear = Math.round(scaleToYear(scaleValue));
-    const percent = Math.round(scaleValue);
-    
-    // Получаем век (первые две цифры года)
-    const century = Math.floor(realYear / 100);
-    const centuryStart = century * 100;
-    const centuryEnd = centuryStart + 99;
-    
-    tooltip.innerHTML = `
-        <strong>📅 Соответствует ${realYear} году (${century} век)
-        <div style="margin-top: 8px; font-size: 12px; color: #bdc3c7;">
-            События ${century} века (${centuryStart}-${centuryEnd}):
-        </div>
-    `;
-    
-    // Фильтруем события, которые попадают в этот век
-    const eventsInCentury = periods.filter(p => {
-        const periodCentury = Math.floor(p.startReal / 100);
-        return periodCentury === century;
-    });
-    
-    if (eventsInCentury.length > 0) {
-        // Сортируем по году начала
-        eventsInCentury.sort((a, b) => a.startReal - b.startReal);
-        
-        eventsInCentury.forEach(event => {
-            tooltip.innerHTML += `
-                <div style="margin-top: 5px; font-size: 11px; padding-left: 8px; border-left: 2px solid ${event.color}">
-                    • ${event.title} (${event.startReal}-${event.endReal})
-                </div>
-            `;
+
+    function showOverlapTooltip(e, element) {
+        const periodsData = JSON.parse(element.dataset.periods);
+        const segmentStartReal = parseInt(element.dataset.startReal);
+        const segmentEndReal = parseInt(element.dataset.endReal);
+        const segmentDuration = segmentEndReal - segmentStartReal;
+
+        let html = `
+            <div style="border-left: 4px solid #ff6b6b; padding-left: 12px;">
+                <strong style="font-size: 16px;">📅 Пересечение ${periodsData.length} событий</strong>
+                <div style="margin-top: 6px; font-size: 12px; color: #ffd966;">⏱️ Период одновременного действия</div>
+                <div style="margin-top: 8px; font-size: 11px; color: #bdc3c7;">📍 ${segmentStartReal} - ${segmentEndReal} (${segmentDuration} ${yearsText(segmentDuration)})</div>
+                <div style="margin-top: 4px; font-size: 10px; color: #95a5a6;">`;
+
+        periodsData.forEach(period => {
+            const duration = period.endReal - period.startReal;
+            html += `
+                <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 3px solid ${period.color};">
+                    <strong class="tooltip-item" data-id="${period.id}" style="color: ${period.color}; cursor: pointer;">${period.title}</strong>
+                    <div style="margin-top: 4px; font-size: 11px; line-height: 1.3;">${period.description}</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #bdc3c7;">📅 Полный период: ${period.startReal} - ${period.endReal} (${duration} ${yearsText(duration)})</div>
+                </div>`;
         });
-    } else {
-        tooltip.innerHTML += `
-            <div style="margin-top: 5px; font-size: 11px; color: #95a5a6;">
-                Нет событий в ${century} веке
-            </div>
-        `;
-    }
-    
-    tooltip.style.opacity = '1';
-    positionTooltip(e, element);
-}
-    
-    // Позиционирование тултипа
-function positionTooltip(e, element) {
-    const rect = element.getBoundingClientRect();
 
-    tooltip.style.display = 'block';
-    tooltip.style.opacity = '0';
-
-    requestAnimationFrame(() => {
-        const tooltipRect = tooltip.getBoundingClientRect();
-
-        let top = rect.top - tooltipRect.height - 12;
-
-        if (top < 10) {
-            top = rect.bottom + 12;
-        }
-
-        let left;
-
-        // ❗ если выходит ЗА ПРАВЫЙ КРАЙ
-        if (rect.left + tooltipRect.width > window.innerWidth - 10) {
-            left = rect.right - tooltipRect.width;
-        }
-        // ❗ если выходит ЗА ЛЕВЫЙ КРАЙ
-        else if (rect.right - tooltipRect.width < 10) {
-            left = rect.left;
-        }
-        // ✅ центр
-        else {
-            left = rect.left + rect.width / 2 - tooltipRect.width / 2;
-        }
-
-        tooltip.style.left = left + 'px';
-        tooltip.style.top = top + 'px';
+        html += `</div></div>`;
+        tooltip.innerHTML = html;
         tooltip.style.opacity = '1';
-    });
-}
-
-
-    
-function hideTooltip() {
-    if (tooltipPinned && tooltipType === 'overlap') return;
-
-    tooltip.style.opacity = '0';
-    clearOverlapHighlight();
-}
-
-    // Функция для подсветки пересекающихся периодов
-function highlightOverlappingPeriods(element) {
-    // Убираем подсветку со всех элементов
-    document.querySelectorAll('.period-area').forEach(el => {
-        el.classList.remove('overlap-highlight');
-    });
-    
-    // Если элемент пустой или не содержит периодов, выходим
-    if (element.dataset.isEmpty === 'true') return;
-    
-    let currentPeriods = [];
-    
-    // Получаем периоды текущего элемента
-    if (element.dataset.overlap === 'true') {
-        // Если это область пересечения
-        currentPeriods = JSON.parse(element.dataset.periods);
-    } else if (element.dataset.id) {
-        // Если это одиночный период, создаем массив с одним периодом
-        currentPeriods = [{
-            id: element.dataset.id,
-            startReal: parseInt(element.dataset.startReal),
-            endReal: parseInt(element.dataset.endReal)
-        }];
+        highlightOverlappingPeriods(element);
+        positionTooltip(e, element);
     }
-    
-    if (currentPeriods.length === 0) return;
-    
-    // Создаем Set с ID периодов текущего элемента
-    const currentPeriodIds = new Set(currentPeriods.map(p => p.id));
-    
-    // Подсвечиваем все элементы, которые содержат хотя бы один из текущих периодов
-    document.querySelectorAll('.period-area').forEach(el => {
-        if (el === element) return; // Пропускаем текущий элемент, он уже подсветится через CSS :hover
-        
-        if (el.dataset.isEmpty === 'true') return;
-        
-        let elPeriods = [];
-        
-        if (el.dataset.overlap === 'true') {
-            elPeriods = JSON.parse(el.dataset.periods);
-        } else if (el.dataset.id) {
-            elPeriods = [{ id: el.dataset.id }];
-        }
-        
-        // Проверяем, есть ли пересечение периодов
-        const hasOverlap = elPeriods.some(p => currentPeriodIds.has(p.id));
-        
-        if (hasOverlap) {
-            el.classList.add('overlap-highlight');
-        }
-    });
-}
 
-// Функция для снятия подсветки
-function clearOverlapHighlight() {
-    document.querySelectorAll('.period-area').forEach(el => {
-        el.classList.remove('overlap-highlight');
-    });
-}
-    
-    // ========== ФУНКЦИИ ПОИСКА (остаются без изменений) ==========
+    function showScaleTooltip(e, element) {
+        const scaleValue = parseFloat(element.dataset.scale);
+        const realYear = Math.round(scaleToYear(scaleValue));
+        const century = Math.floor(realYear / 100);
+        const centuryStart = century * 100;
+        const centuryEnd = centuryStart + 99;
+
+        let html = `
+            <strong>📅 Соответствует ${realYear} году (${century} век)</strong>
+            <div style="margin-top: 8px; font-size: 12px; color: #bdc3c7;">События ${century} века (${centuryStart}-${centuryEnd}):</div>`;
+
+        const eventsInCentury = periods
+            .filter(p => Math.floor(p.startReal / 100) === century)
+            .sort((a, b) => a.startReal - b.startReal);
+
+        if (eventsInCentury.length > 0) {
+            eventsInCentury.forEach(event => {
+                html += `<div style="margin-top: 5px; font-size: 11px; padding-left: 8px; border-left: 2px solid ${event.color}">• ${event.title} (${event.startReal}-${event.endReal})</div>`;
+            });
+        } else {
+            html += `<div style="margin-top: 5px; font-size: 11px; color: #95a5a6;">Нет событий в ${century} веке</div>`;
+        }
+
+        tooltip.innerHTML = html;
+        tooltip.style.opacity = '1';
+        positionTooltip(e, element);
+    }
+
+    function positionTooltip(e, element) {
+        const rect = element.getBoundingClientRect();
+        tooltip.style.display = 'block';
+        tooltip.style.opacity = '0';
+
+        requestAnimationFrame(() => {
+            const tooltipRect = tooltip.getBoundingClientRect();
+            let top = rect.top - tooltipRect.height - 12;
+            if (top < 10) top = rect.bottom + 12;
+
+            let left;
+            if (rect.left + tooltipRect.width > window.innerWidth - 10) {
+                left = rect.right - tooltipRect.width;
+            } else if (rect.right - tooltipRect.width < 10) {
+                left = rect.left;
+            } else {
+                left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.opacity = '1';
+        });
+    }
+
+    function hideTooltip() {
+        if (tooltipPinned) return;
+        tooltip.style.opacity = '0';
+        clearOverlapHighlight();
+    }
+
+    function highlightOverlappingPeriods(element) {
+        document.querySelectorAll('.period-area').forEach(el => el.classList.remove('overlap-highlight'));
+        if (element.dataset.isEmpty === 'true') return;
+
+        let currentPeriods = element.dataset.overlap === 'true'
+            ? JSON.parse(element.dataset.periods)
+            : element.dataset.id ? [{ id: element.dataset.id, startReal: parseInt(element.dataset.startReal), endReal: parseInt(element.dataset.endReal) }]
+            : [];
+
+        if (!currentPeriods.length) return;
+
+        const currentIds = new Set(currentPeriods.map(p => p.id));
+        document.querySelectorAll('.period-area').forEach(el => {
+            if (el === element || el.dataset.isEmpty === 'true') return;
+            const elPeriods = el.dataset.overlap === 'true'
+                ? JSON.parse(el.dataset.periods)
+                : el.dataset.id ? [{ id: el.dataset.id }] : [];
+            if (elPeriods.some(p => currentIds.has(p.id))) el.classList.add('overlap-highlight');
+        });
+    }
+
+    function clearOverlapHighlight() {
+        document.querySelectorAll('.period-area').forEach(el => el.classList.remove('overlap-highlight'));
+    }
+
+    // ========== ШКАЛЫ ==========
+    function createScales() {
+        timelineData.forEach(item => {
+            const scale = document.createElement('div');
+            scale.className = `scale ${item.type}`;
+            scale.style.left = `${getPositionPercent(item.scale)}%`;
+            scale.dataset.scale = item.scale;
+            scale.dataset.year = Math.round(scaleToYear(item.scale));
+
+            const label = document.createElement('div');
+            label.className = 'scale-label';
+            label.textContent = item.label;
+            scale.appendChild(label);
+
+            scale.addEventListener('mouseenter', (e) => showScaleTooltip(e, scale));
+            scale.addEventListener('mouseleave', hideTooltip);
+            timeline.appendChild(scale);
+        });
+    }
+
+    // ========== ПОИСК ==========
     function showSearchInterface() {
         searchResultsContainer.style.display = 'block';
         clearSearchButton.style.display = 'block';
-        document.querySelector('.timeline-container').classList.add('search-active');
-    }
-    
-function hideSearchInterface(skipReset = false) {
-    searchResultsContainer.style.display = 'none';
-    clearSearchButton.style.display = 'none';
-
-    document.getElementById('searchResults').innerHTML = '';
-
-    if (!skipReset) {
-        resetTimelinePosition(); // ✅ только если нужно
-    }
-}
-
-function updateTimelinePosition() {
-    const results = document.getElementById('searchResultsContainer');
-    const timeline = document.querySelector('.timeline-container');
-
-    // ❗ если нет результатов или они скрыты
-    if (!results || results.style.display === 'none') {
-        resetTimelinePosition();
-        return;
     }
 
-    const rect = results.getBoundingClientRect();
-
-    // ❗ защита: если высота 0 → вернуть в центр
-    if (rect.height === 0) {
-        resetTimelinePosition();
-        return;
+    function hideSearchInterface(skipReset = false) {
+        searchResultsContainer.style.display = 'none';
+        clearSearchButton.style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '';
+        if (!skipReset) resetTimelinePosition();
     }
 
-    timeline.style.top = (rect.bottom + 20) + 'px';
-}
-    
-function searchEvents(searchTerm) {
-    currentSearch.searchTerm = searchTerm;
-
-    if (!searchTerm.trim()) {
-        hideSearchInterface();
-        clearHighlight();
-        return;
-    }
-
-    showSearchInterface();
-
-    const term = searchTerm.toLowerCase().trim();
-
-    const results = periods.map(period => {
-        let score = 0;
-        let matched = false;
-
-        const title = period.title.toLowerCase();
-        const description = period.description.toLowerCase();
-
-        // 🔥 1. Начало слова (самый важный)
-        if (title.split(' ').some(word => word.startsWith(term))) {
-            score += 100;
-            matched = true;
-        }
-
-        // 🔥 2. Вхождение в название
-        else if (title.includes(term)) {
-            score += 70;
-            matched = true;
-        }
-
-        // 🔥 3. ГОДЫ (только если цифры)
-        if (!isNaN(term)) {
-            if (
-                period.startReal.toString().includes(term) ||
-                period.endReal.toString().includes(term)
-            ) {
-                score += 90;
-                matched = true;
-            }
-        }
-
-        // 🔥 4. ОПИСАНИЕ — ТОЛЬКО если уже есть совпадение
-        if (matched && description.includes(term)) {
-            score += 10;
-        }
-
-        return {
-            ...period,
-            id: `${period.startReal}-${period.endReal}`,
-            score,
-            matched
-        };
-    })
-    .filter(p => p.matched) // ❗ ВАЖНО: только реальные совпадения
-    .sort((a, b) => b.score - a.score);
-
-    currentSearch.results = results;
-    currentSearch.currentPage = 1;
-    currentSearch.activeIndex = -1;
-    currentSearch.totalPages = Math.ceil(results.length / currentSearch.itemsPerPage);
-
-    updateSearchUI(results, searchTerm);
-}
-    
-function updateSearchUI(results) {
-    const container = document.getElementById('searchResultsContainer');
-    const resultsElement = document.getElementById('searchResults');
-
-if (results.length === 0) {
-    container.style.display = 'block';
-
-    resultsElement.innerHTML = `
-        <div class="no-results">
-            Ничего не найдено
-        </div>
-    `;
-
-    updateTimelinePosition(); // чтобы шкала сдвинулась
-
-    return;
-}
-
-    container.style.display = 'block';
-
-resultsElement.innerHTML = results.map(result => `
-    <div class="result-item"
-         data-id="${result.id}"
-         style="--item-color: ${result.color}">
-         
-        <div class="result-title">${result.title}</div>
-        <div class="result-years">${result.startReal} - ${result.endReal}</div>
-    </div>
-`).join('');
-
-    document.querySelectorAll('.result-item').forEach(el => {
-        const id = el.dataset.id;
-
-        el.addEventListener('mouseenter', () => {
-            highlightPeriodOnTimeline(id);
-        });
-
-        el.addEventListener('mouseleave', clearHighlight);
-
-        el.addEventListener('click', () => {
-            handleResultClick(id);
-        });
-    });
-
-    updateTimelinePosition(); // ✅ двигаем вниз
-}
-
-function highlightPeriodOnTimeline(periodId) {
-    clearHighlight();
-
-    let target = null;
-
-    document.querySelectorAll('.period-area').forEach(el => {
-        if (
-            el.dataset.id === periodId ||
-            (el.dataset.periods && el.dataset.periods.includes(periodId))
-        ) {
-            el.classList.add('search-found');
-
-            if (!target) target = el;
-        }
-    });
-
-    if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-}
-
-function clearHighlight() {
-    document.querySelectorAll('.period-area').forEach(el => {
-        el.classList.remove('search-found');
-    });
-}
-
-    
-    function highlightText(text, searchTerm) {
-        if (!searchTerm) return text;
-        
-        const lowerText = text.toLowerCase();
-        const lowerTerm = searchTerm.toLowerCase();
-        const termIndex = lowerText.indexOf(lowerTerm);
-        
-        if (termIndex === -1) return text;
-        
-        const before = text.substring(0, termIndex);
-        const match = text.substring(termIndex, termIndex + searchTerm.length);
-        const after = text.substring(termIndex + searchTerm.length);
-        
-        return `${before}<span class="highlight-text">${match}</span>${after}`;
-    }
-
-    function handleResultHover(periodId) {
-    highlightPeriodOnTimeline(periodId);
-}
-    
-    function updatePagination() {
-        const paginationElement = document.getElementById('searchPagination');
-        const totalPages = currentSearch.totalPages;
-        const currentPage = currentSearch.currentPage;
-        
-        if (totalPages <= 1) {
-            paginationElement.innerHTML = '';
+    function updateTimelinePosition() {
+        const resultsContainer = document.getElementById('searchResultsContainer');
+        const timelineContainer = document.querySelector('.timeline-container');
+        if (!resultsContainer || resultsContainer.style.display === 'none') {
+            resetTimelinePosition();
             return;
         }
-        
-        let paginationHTML = `
-            <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>←</button>
-        `;
-        
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === currentPage) {
-                paginationHTML += `<button class="page-btn active">${i}</button>`;
-            } else if (Math.abs(i - currentPage) <= 2 || i === 1 || i === totalPages) {
-                paginationHTML += `<button class="page-btn" onclick="goToPage(${i})">${i}</button>`;
-            } else if (Math.abs(i - currentPage) === 3) {
-                paginationHTML += `<span class="page-ellipsis">...</span>`;
+        const rect = resultsContainer.getBoundingClientRect();
+        if (rect.height === 0) { resetTimelinePosition(); return; }
+        timelineContainer.style.top = (rect.bottom + 20) + 'px';
+    }
+
+    function resetTimelinePosition() {
+        document.querySelector('.timeline-container').style.top = 'calc(50% - 45px)';
+    }
+
+    function searchEvents(searchTerm) {
+        currentSearch.searchTerm = searchTerm;
+        if (!searchTerm.trim()) { hideSearchInterface(); clearHighlight(); return; }
+
+        showSearchInterface();
+        const term = searchTerm.toLowerCase().trim();
+
+        const results = periods.map(period => {
+            let score = 0, matched = false;
+            const title = period.title.toLowerCase();
+            const description = period.description.toLowerCase();
+
+            if (title.split(' ').some(word => word.startsWith(term))) { score += 100; matched = true; }
+            else if (title.includes(term)) { score += 70; matched = true; }
+
+            if (!isNaN(term) && (period.startReal.toString().includes(term) || period.endReal.toString().includes(term))) {
+                score += 90; matched = true;
             }
+            if (matched && description.includes(term)) score += 10;
+
+            return { ...period, id: `${period.startReal}-${period.endReal}`, score, matched };
+        }).filter(p => p.matched).sort((a, b) => b.score - a.score);
+
+        currentSearch.results = results;
+        currentSearch.activeIndex = -1;
+        updateSearchUI(results);
+    }
+
+    function updateSearchUI(results) {
+        const container = document.getElementById('searchResultsContainer');
+        const resultsEl = document.getElementById('searchResults');
+
+        container.style.display = 'block';
+
+        if (results.length === 0) {
+            resultsEl.innerHTML = `<div class="no-results">Ничего не найдено</div>`;
+            updateTimelinePosition();
+            return;
         }
-        
-        paginationHTML += `
-            <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>→</button>
-        `;
-        
-        paginationElement.innerHTML = paginationHTML;
+
+        resultsEl.innerHTML = results.map(result => `
+            <div class="result-item" data-id="${result.id}" style="--item-color: ${result.color}">
+                <div class="result-title">${result.title}</div>
+                <div class="result-years">${result.startReal} - ${result.endReal}</div>
+            </div>`).join('');
+
+        resultsEl.querySelectorAll('.result-item').forEach(el => {
+            const id = el.dataset.id;
+            el.addEventListener('mouseenter', () => highlightPeriodOnTimeline(id));
+            el.addEventListener('mouseleave', clearHighlight);
+            el.addEventListener('click', () => handleResultClick(id));
+        });
+
+        updateTimelinePosition();
     }
-    
-    function goToPage(page) {
-        if (page < 1 || page > currentSearch.totalPages) return;
-        currentSearch.currentPage = page;
-        updateSearchUI(currentSearch.results, currentSearch.searchTerm);
+
+    function highlightPeriodOnTimeline(periodId) {
+        clearHighlight();
+        let target = null;
+        document.querySelectorAll('.period-area').forEach(el => {
+            if (el.dataset.id === periodId || (el.dataset.periods && el.dataset.periods.includes(periodId))) {
+                el.classList.add('search-found');
+                el.style.zIndex = '9999';
+                if (!target) target = el;
+            }
+        });
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    
+
+    function clearHighlight() {
+        document.querySelectorAll('.period-area').forEach(el => {
+            el.classList.remove('search-found');
+            el.style.zIndex = '2';
+        });
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        searchResultsContainer.style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '';
+        clearHighlight();
+        resetTimelinePosition();
+    }
+
     function handleResultClick(periodId) {
         openPeriodModal(periodId);
-        
         document.querySelectorAll('.period-area').forEach(el => {
             if (el.dataset.id === periodId || (el.dataset.periods && el.dataset.periods.includes(periodId))) {
                 el.classList.add('highlighted-active');
-                setTimeout(() => {
-                    el.classList.remove('highlighted-active');
-                }, 1000);
-                
+                setTimeout(() => el.classList.remove('highlighted-active'), 1000);
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         });
     }
-    
-function clearHighlight() {
-    document.querySelectorAll('.period-area').forEach(el => {
-        el.classList.remove('search-found');
-        el.style.zIndex = '2';
-    });
-}
-    
-function clearSearch() {
-    const input = document.getElementById('searchInput');
 
-    input.value = '';
+    function setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
 
-    searchResultsContainer.style.display = 'none';
-    document.getElementById('searchResults').innerHTML = '';
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchEvents(searchInput.value);
+        });
+        searchButton.addEventListener('click', () => searchEvents(searchInput.value));
+        clearSearchButton.addEventListener('click', clearSearch);
 
-    clearHighlight();
-    resetTimelinePosition(); // ✅ вернуть
-}
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => searchEvents(e.target.value), 300);
+        });
 
-function resetTimelinePosition() {
-    const timeline = document.querySelector('.timeline-container');
-    timeline.style.top = 'calc(50% - 45px)';
-}
-    
-function setupSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const searchButton = document.getElementById('searchButton');
-
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchEvents(searchInput.value);
-        }
-    });
-
-    searchButton.addEventListener('click', () => {
-        searchEvents(searchInput.value);
-    });
-
-    clearSearchButton.addEventListener('click', clearSearch);
-
-    let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            searchEvents(e.target.value);
-        }, 300);
-    });
-
-    // ✅ ВСТАВИТЬ ВОТ СЮДА
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.tooltip')) {
-        tooltipPinned = false;
-        hideTooltip();
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.tooltip')) {
+                tooltipPinned = false;
+                hideTooltip();
+            }
+        });
     }
-});
-}
-    
+
     // ========== МОДАЛЬНОЕ ОКНО ==========
     const periodDetails = {
         '1700-1721': {
@@ -1339,22 +703,8 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Коалиция против Швеции',
             rightTitle: 'Коалиция на стороне Швеции',
-            left: [
-    {
-        name: 'Русское царство',
-        dominions: [
-            'Войско Запорожское',
-        ]
-    },
-        'Датско-норвежская уния', 'Саксония', 'Речь Посполитая', 'Пруссия', 'Ганновер'],
-            right: [
-    {
-        name: 'Королевство Швеция',
-        dominions: [
-            'Гольштейн-Готторп',
-        ]
-    },
-        'Речь Посполитая (1705-1709)', 'Войско Запорожское (1708-1713)', 'Войско Запорожское Низовое']
+            left: [{name: 'Русское царство', dominions: ['Войско Запорожское']}, 'Датско-норвежская уния', 'Саксония', 'Речь Посполитая', 'Пруссия', 'Ганновер'],
+            right: [{name: 'Королевство Швеция', dominions: ['Гольштейн-Готторп',]}, 'Речь Посполитая (1705-1709)', 'Войско Запорожское (1708-1713)', 'Войско Запорожское Низовое']
             },
         results: [`Россия отвоевала побережье Балтийского моря, вернув потерянные в прежних войнах земли и захватив новые, никогда ей не принадлежавшие. Успехи в войне и активное участие в европейской политике способствовали становлению её как великой державы. Также Россия основала сильный военный и торговый флот на Балтике, не уступающий по своим возможностям европейским флотилиям.`
     ],
@@ -1366,23 +716,8 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Русское царство',
             rightTitle: 'Османская империя',
-            left: [
-    {
-        name: 'Русское царство',
-        dominions: [
-            'Войско Запорожское (сторонники Скоропадского)',
-            'Калмыцкое ханство',
-        ]
-    },
-        'Молдавское княжество', 'Княжество-епископство Черногория'],
-            right: [
-    {
-        name: 'Османская империя',
-        dominions: [
-            'Крымское ханство',
-        ]
-    },
-        'Войско Запорожское (сторонники Орлика)', 'Войско Запорожское Низовое']
+            left: [{name: 'Русское царство', dominions: ['Войско Запорожское (сторонники Скоропадского)', 'Калмыцкое ханство']}, 'Молдавское княжество', 'Княжество-епископство Черногория'],
+            right: [{name: 'Османская империя', dominions: ['Крымское ханство']}, 'Войско Запорожское (сторонники Орлика)', 'Войско Запорожское Низовое']
             },
         results: [`Русско-турецкая война 1710—1713 годов, несмотря на локальные неудачи, стала важным этапом в формировании внешнеполитической стратегии России. 13 июня — Османская империя и Россия заключили Адрианопольский мирный договор. В соответствии с этими договором, Россия уступала Турции крепость Азов с примыкающей территорией до реки Орель. При этом некоторые историки оценивают Адрианопольский мир как дипломатический успех России, поскольку он обеспечивал ей свободу действий в борьбе за берега Балтики против Швеции.`
     ],
@@ -1394,16 +729,7 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Российская империя',
             rightTitle: 'Османская империя',
-            left: [
-    {
-        name: 'Российская империя',
-        dominions: [
-            'Войско Донское',
-            'Калмыцкое ханство',
-            'Войско Запорожское'
-        ]
-    },
-        'Тарковское шамхальство', 'Княжество Табасаран', 'Картлийское царство'],
+            left: [{name: 'Российская империя', dominions: ['Войско Донское', 'Калмыцкое ханство', 'Войско Запорожское']}, 'Тарковское шамхальство', 'Княжество Табасаран', 'Картлийское царство'],
             right: ['Сефевидская Персия']
             },
         results: [`Русско-турецкая война 1710—1713 годов, несмотря на локальные неудачи, стала важным этапом в формировании внешнеполитической стратегии России. 13 июня — Османская империя и Россия заключили Адрианопольский мирный договор. В соответствии с этими договором, Россия уступала Турции крепость Азов с примыкающей территорией до реки Орель. При этом некоторые историки оценивают Адрианопольский мир как дипломатический успех России, поскольку он обеспечивал ей свободу действий в борьбе за берега Балтики против Швеции.`
@@ -1431,24 +757,8 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Против Османской империи',
             rightTitle: 'Османская империя',
-            left: [
-    {
-        name: 'Российская империя',
-        dominions: [
-            'Войско Запорожское',
-            'Войско Запорожское Низовое',
-            'Калмыцкое ханство'
-        ]
-    },
-    'Священная Римская империя'],
-            right: [
-    {
-        name: 'Османская империя',
-        dominions: [
-            'Крымское ханство',
-        ]
-    },
-            ]
+            left: [{name: 'Российская империя', dominions: ['Войско Запорожское', 'Войско Запорожское Низовое', 'Калмыцкое ханство']}, 'Священная Римская империя'],
+            right: [{name: 'Османская империя', dominions: ['Крымское ханство',]},]
             },
         results: [`Продолжать войну в одиночку было опасно для России, и через французского посла Л. де Вильнёва начались переговоры с Турцией о мире. Переговоры шли долго, наконец в сентябре 1739 года был заключён мирный договор в Белграде. По договору, Россия оставляла за собой Азов, но обязывалась срыть все находящиеся в нём укрепления. Кроме того, ей запрещалось иметь флот на Чёрном море, а для торговли на нём должны были использоваться турецкие суда. Таким образом, задача выхода к Чёрному морю практически не была решена.`
     ],
@@ -1475,22 +785,7 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Антипрусская коалиция',
             rightTitle: 'Англо-прусская коалиция',
-            left: [
-    {
-        name: 'Священная Римская империя',
-        dominions: [
-            'Габсбургская монархия',
-            'Саксония',
-        ]
-    },
-    {
-        name: 'Российская империя (1757—1762)',
-        dominions: [
-            'Войско Запорожское',
-            'Калмыцкое ханство',
-        ]
-    },
-    'Королевство Франция', 'Королевство Швеция', 'Испанская империя'],
+            left: [{name: 'Священная Римская империя', dominions: ['Габсбургская монархия', 'Саксония',]}, {name: 'Российская империя (1757—1762)', dominions: ['Войско Запорожское', 'Калмыцкое ханство',]}, 'Королевство Франция', 'Королевство Швеция', 'Испанская империя'],
             right: ['Королевство Великобритания', 'Пруссия', 'Ганновер', 'Гессен-Кассель', 'Шаумбург-Липпе', 'Королевство Португалия', 'Российская империя (1762)']
             },
         results: [`Семилетняя война завершилась в начале 1763 года из-за полного истощения сторон, закрепив новый баланс сил в мире. Согласно Парижскому мирному договору, Великобритания приобрела статус доминирующей колониальной державы, отобрав у Франции Канаду, Восточную Луизиану и владения в Индии, что фактически покончило с французским могуществом в Америке. Пруссия, подписав Губертусбургский мир с Австрией и Саксонией, сохранила за собой Силезию и окончательно вошла в круг ведущих европейских держав, начав долгий путь к объединению немецких земель под своим началом.
@@ -1505,22 +800,8 @@ document.addEventListener('click', (e) => {
             leftTitle: 'Против Османской империи',
             rightTitle: 'Османская империя',
             left: [
-    {
-        name: 'Российская империя',
-        dominions: [
-            'Войско Запорожское Низовое',
-            'Калмыцкое ханство'
-        ]
-    },
-    'Картли-Кахетинское царство', 'Имеретинское царство'],
-            right: [
-    {
-        name: 'Османская империя',
-        dominions: [
-            'Крымское ханство',
-        ]
-    },
-            ]
+    {name: 'Российская империя', dominions: ['Войско Запорожское Низовое', 'Калмыцкое ханство']}, 'Картли-Кахетинское царство', 'Имеретинское царство'],
+            right: [{name: 'Османская империя', dominions: ['Крымское ханство',]},]
             },
         results: [`По итогам войны Крым был объявлен независимым от Турции. Россия получила Большую и Малую Кабарду, Азов, Керчь и Еникале, Кинбурн с округой и прилегавшей к нему степью между Днепром и Бугом. Русские корабли могли свободно ходить по турецким водам; русские подданные получили право пользоваться всеми теми выгодами, которыми пользовались в пределах Турции союзные туркам народы; Порта признала титул русских императоров и обязалась называть их падишахами, даровала амнистию и свободу вероисповедания балканским христианам, предоставила представителям России принимать на себя роль защитников славян и ходатайствовать за них.`
     ],
@@ -1653,19 +934,7 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Антанта',
             rightTitle: 'Центральные державы',
-            left: [
-    {
-        name: 'Великобритания',
-        dominions: [
-            'Австралия',
-            'Британская Индия',
-            'Канада',
-            'Новая Зеландия',
-            'Ньюфаундленд',
-            'ЮАС'
-        ]
-    },
-    'Российская империя', 'Франция', 'Сербия', 'Черногория', 'США', 'Бельгия', 'Италия', 'Япония', 'Румыния', 'Греция', 'Португалия', 'Сан-Марино', 'Китай', 'Бразилия', 'Сиам'],
+            left: [{name: 'Великобритания', dominions: ['Австралия', 'Британская Индия', 'Канада', 'Новая Зеландия', 'Ньюфаундленд', 'ЮАС']}, 'Российская империя', 'Франция', 'Сербия', 'Черногория', 'США', 'Бельгия', 'Италия', 'Япония', 'Румыния', 'Греция', 'Португалия', 'Сан-Марино', 'Китай', 'Бразилия', 'Сиам'],
             right: ['Германская империя', 'Австро-Венгрия', 'Османская империя', 'Болгария']
     },
         results: [`Результатами Первой мировой войны стали Февральская и Октябрьская революции в России и Ноябрьская революция в Германии.
@@ -1700,78 +969,9 @@ document.addEventListener('click', (e) => {
             sides: {
             leftTitle: 'Антигитлеровская коалиция',
             rightTitle: 'Страны «оси» и их союзники',
-            left: [
-    {
-        name: 'Великобритания',
-        dominions: [
-            'Австралия',
-            'Британская Индия',
-            'Канада',
-            'Новая Зеландия',
-            'ЮАС '
-        ]
-    },
-    {
-        name: 'США',
-        dominions: [
-            'Содружество Филиппин',
-        ]
-    },
-    'СССР',
-    'Франция',
-    'Китай ',
-    'Польша',
-    'Бельгия',
-    'Нидерланды',
-    'Люксембург',
-    'Норвегия',
-    'Дания',
-    'Греция',
-    'Югославия',
-    'Эфиопия',
-    'Монголия',
-    'Тува',
-    'Турция',
-    'Непал',
-    'Саудовская Аравия',
-    'Бразилия',
-    'Аргентина',
-    'Боливия',
-    'Венесуэла',
-    'Гаити',
-    'Гватемала',
-    'Гондурас',
-    'Доминиканская Республика',
-    'Колумбия',
-    'Коста-Рика',
-    'Куба',
-    'Мексика',
-    'Никарагуа',
-    'Панама',
-    'Парагвай',
-    'Перу',
-    'Сальвадор',
-    'Уругвай',
-    'Чили',
-    'Эквадор',
-    'Либерия',
-],
-            right: [
-    {
-        name: 'Германия',
-        dominions: [
-            'Словакия',
-        ]
-    },
-    {
-        name: 'Япония',
-        dominions: [
-            'Маньчжоу-Го',
-            'Мэнцзян',
-        ]
-    },
-    'Италия ', 'Венгрия', 'Болгария', 'Румыния', 'Финляндия', 'Ирак', 'Иран',  'Сиам']
-    },
+            left: [{name: 'Великобритания', dominions: ['Австралия', 'Британская Индия', 'Канада', 'Новая Зеландия', 'ЮАС ']}, {name: 'США', dominions: ['Содружество Филиппин',]}, 'СССР', 'Франция', 'Китай ', 'Польша', 'Бельгия', 'Нидерланды', 'Люксембург', 'Норвегия', 'Дания', 'Греция', 'Югославия', 'Эфиопия', 'Монголия', 'Тува', 'Турция', 'Непал', 'Саудовская Аравия', 'Бразилия', 'Аргентина', 'Боливия', 'Венесуэла', 'Гаити', 'Гватемала', 'Гондурас', 'Доминиканская Республика', 'Колумбия', 'Коста-Рика', 'Куба', 'Мексика', 'Никарагуа', 'Панама', 'Парагвай', 'Перу', 'Сальвадор', 'Уругвай', 'Чили', 'Эквадор', 'Либерия',],
+            right: [{name: 'Германия', dominions: ['Словакия',]}, {name: 'Япония', dominions: ['Маньчжоу-Го', 'Мэнцзян',]}, 'Италия ', 'Венгрия', 'Болгария', 'Румыния', 'Финляндия', 'Ирак', 'Иран',  'Сиам']
+},
         results: [`В результате войны ослабла роль Западной Европы в общемировой политике. Главными державами в мире стали СССР и США.
             Великобритания и Франция, несмотря на победу, были значительно ослаблены. Война показала неспособность их и других западноевропейских стран содержать огромные колониальные империи. В странах Африки и Азии усилилось антиколониальное движение.
             В результате войны часть стран смогла добиться независимости: Эфиопия, Исландия, Сирия, Ливан, Вьетнам, Индонезия. В странах Восточной Европы, занятых советскими войсками, были установлены социалистические режимы.
@@ -1804,16 +1004,7 @@ document.addEventListener('click', (e) => {
             leftTitle: 'Выступающие за независимость республик',
             rightTitle: 'Выступающие за сохранение югославского единства',
             left: ['Хорватия', 'Босния и Герцеговина', 'Словения', 'Республика Косово', 'США', 'Великобритания', 'Франция', 'Италия  ', 'Германия ', 'Канада ', 'Бельгия', 'Нидерланды', 'Дания', 'Норвегия', 'Португалия', 'Испания', 'Турция'],
-            right: [
-    {
-        name: 'Югославия (1991-1992)',
-        dominions: [
-            'СР Югославия',
-            'Республика Сербская',
-            'Республика Сербская Краина',
-        ]
-    },
-]
+            right: [{name: 'Югославия (1991-1992)',dominions: ['СР Югославия','Республика Сербская','Республика Сербская Краина',]},]
     },
         results: [`Югославские войны, ставшие самым кровопролитным конфликтом в Европе после Второй мировой войны, привели к окончательному распаду Социалистической Федеративной Республики Югославия и радикальному изменению политической карты Балкан. Итогом многолетних боевых действий стало появление новых независимых государств: Словении, Хорватии, Боснии и Герцеговины, Северной Македонии, а позже Черногории и частично признанной Республики Косово.
             Конфликты сопровождались огромными человеческими жертвами, массовыми этническими чистками и появлением миллионов беженцев, что оставило глубокие социальные и психологические травмы в обществах региона.
@@ -1821,195 +1012,140 @@ document.addEventListener('click', (e) => {
     ]
         },
     };
-    
-function openPeriodModal(periodId) {
-    console.log('ID:', periodId);
-    const details = periodDetails[periodId];
-    if (!details) return;
 
-    // 🔥 Скрываем верх (поиск + заголовок)
-    document.querySelector('.page-top').classList.add('hidden');
-    
-    // Заполнение основных текстовых полей
-    document.getElementById('modalTitle').textContent = details.title;
-    document.getElementById('modalPeriod').textContent = periodId.replace('-', ' - ');
-    document.getElementById('modalDescription').innerHTML = `
-        <h3>Начало</h3>
-        ${details.description}
-    `;
+    function openPeriodModal(periodId) {
+        const details = periodDetails[periodId];
+        if (!details) return;
 
-    // Картинка
-    const modalImage = document.getElementById('modalImage');
-    modalImage.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = details.image;
-    img.alt = details.title;
-    modalImage.appendChild(img);
+        document.querySelector('.page-top').classList.add('hidden');
 
-    // Подготовка модального окна
-    const modal = document.getElementById('periodModal');
-    modal.style.display = 'block';
+        document.getElementById('modalTitle').textContent = details.title;
+        document.getElementById('modalPeriod').textContent = periodId.replace('-', ' - ');
+        document.getElementById('modalDescription').innerHTML = `<h3>Начало</h3>${details.description}`;
 
-    requestAnimationFrame(() => {
-        modal.classList.add('active');
-    });
+        const modalImage = document.getElementById('modalImage');
+        modalImage.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = details.image;
+        img.alt = details.title;
+        modalImage.appendChild(img);
 
-    document.body.style.overflow = 'hidden';
-    if (typeof clearHighlight === 'function') clearHighlight();
-    if (typeof hideSearchInterface === 'function') hideSearchInterface(true);
+        const modal = document.getElementById('periodModal');
+        modal.style.display = 'block';
+        requestAnimationFrame(() => modal.classList.add('active'));
+        document.body.style.overflow = 'hidden';
 
-    // Работа со сторонами конфликта
-    const leftList = document.getElementById('modalSideLeft');
-    const rightList = document.getElementById('modalSideRight');
-    const leftTitle = document.getElementById('modalSideLeftTitle');
-    const rightTitle = document.getElementById('modalSideRightTitle');
+        clearHighlight();
+        hideSearchInterface(true);
 
-    leftList.innerHTML = '';
-    rightList.innerHTML = '';
+        const leftList = document.getElementById('modalSideLeft');
+        const rightList = document.getElementById('modalSideRight');
+        const leftTitle = document.getElementById('modalSideLeftTitle');
+        const rightTitle = document.getElementById('modalSideRightTitle');
 
-    const leftCountries = details.sides?.left || [];
-    const rightCountries = details.sides?.right || [];
+        leftList.innerHTML = '';
+        rightList.innerHTML = '';
 
-    function countAll(countries) {
-        let total = 0;
-        countries.forEach(c => {
-            total++; // сама страна
-            if (typeof c !== 'string' && c.dominions) total += c.dominions.length;
-        });
-        return total;
-    }
+        const leftCountries = details.sides?.left || [];
+        const rightCountries = details.sides?.right || [];
 
-    // Блок итогов
-    const resultsBlock = document.getElementById('modalResults');
-    if (details.results) {
-        resultsBlock.innerHTML = `
-            <h3>Итоги войны</h3>
-            ${details.results.map(r => `<p>${r}</p>`).join('')}
-        `;
-    } else {
-        resultsBlock.innerHTML = '';
-    }
-
-    if (details.sides) {
-        leftTitle.textContent = `${details.sides.leftTitle} (${countAll(leftCountries)} страны)`;
-        rightTitle.textContent = `${details.sides.rightTitle} (${countAll(rightCountries)} страны)`;
-    } else {
-        leftTitle.textContent = '';
-        rightTitle.textContent = '';
-    }
-
-    // Функция создания элементов стран (ваша логика без изменений)
-function createCountry(country) {
-    const li = document.createElement('li');
-    li.className = 'country';
-
-    const name = typeof country === 'string' ? country : (country.name || '');
-    const date = typeof country === 'object' ? country.date : null;
-    const hasDominions = typeof country === 'object' && country.dominions;
-    const flag = flags[name] || 'flags/default.png';
-
-    // ВЕРХНЯЯ СТРОКА
-    const wrapper = document.createElement('div');
-    wrapper.className = 'country-main';
-
-    wrapper.innerHTML = `
-        <div class="country-info">
-            <img src="${flag}">
-            <span class="country-name">${name}</span>
-        </div>
-        <div class="country-meta">
-            ${date ? `<span class="country-date">${date}</span>` : ''}
-            ${hasDominions ? '<button class="toggle-btn">[показать]</button>' : ''}
-        </div>
-    `;
-
-    li.appendChild(wrapper);
-
-    // СПИСОК ДОМИНИОНОВ
-    if (hasDominions) {
-        const subList = document.createElement('ul');
-        subList.className = 'dominions hidden';
-        country.dominions.forEach(d => {
-            const subLi = document.createElement('li');
-            const subFlag = flags[d] || 'flags/default.png';
-            // ВАЖНО: доминионам тоже даем структуру для выравнивания
-            subLi.innerHTML = `<img src="${subFlag}"><span>${d}</span>`;
-            subList.appendChild(subLi);
-        });
-
-        const btn = wrapper.querySelector('.toggle-btn');
-        btn.addEventListener('click', (e) => {
-            subList.classList.toggle('hidden');
-            btn.textContent = subList.classList.contains('hidden') ? '[показать]' : '[скрыть]';
-        });
-        li.appendChild(subList);
-    }
-
-    return li;
-}
-
-    if (details.sides) {
-        details.sides.left.forEach(c => leftList.appendChild(createCountry(c)));
-        details.sides.right.forEach(c => rightList.appendChild(createCountry(c)));
-    }
-
-    // 🔥 ГЕОМЕТРИЧЕСКИЙ РАСЧЕТ (ИСПРАВЛЕННЫЙ)
-    setTimeout(() => {
-        const resultsTitle = document.querySelector('#modalResults h3');
-        const sidesTitle = document.getElementById('modalSidesTitle');
-        const image = document.querySelector('.modal-image');
-
-        if (!resultsTitle || !sidesTitle || !image) return;
-
-        // 1. СБРОС СТИЛЕЙ — это решает проблему чередования бага
-        sidesTitle.parentElement.style.marginTop = '0px';
-        image.style.height = 'auto';
-
-        // 2. ИЗМЕРЕНИЕ (теперь значения будут всегда чистыми)
-        const resultsTop = resultsTitle.getBoundingClientRect().top;
-        const sidesTop = sidesTitle.getBoundingClientRect().top;
-        const imageTop = image.getBoundingClientRect().top;
-
-        // 3. ПРИМЕНЕНИЕ
-        const offset = resultsTop - sidesTop;
-        
-        // Сдвигаем заголовок сторон на уровень заголовка итогов
-        sidesTitle.parentElement.style.marginTop = offset + 'px';
-
-        // Подгоняем высоту картинки, чтобы она заканчивалась там, где начинаются итоги
-        const calculatedHeight = resultsTop - imageTop - 15;
-        if (calculatedHeight > 100) {
-            image.style.height = calculatedHeight + 'px';
+        function countAll(countries) {
+            return countries.reduce((total, c) => total + 1 + (typeof c !== 'string' && c.dominions ? c.dominions.length : 0), 0);
         }
-    }, 60); // небольшая задержка для завершения рендеринга
-}
-    
-function closePeriodModal() {
-    const modal = document.getElementById('periodModal');
 
-    modal.classList.remove('active');
+        const resultsBlock = document.getElementById('modalResults');
+        resultsBlock.innerHTML = details.results
+            ? `<h3>Итоги войны</h3>${details.results.map(r => `<p>${r}</p>`).join('')}`
+            : '';
 
-    setTimeout(() => {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-        document.querySelector('.page-top').classList.remove('hidden');
-    }, 300); // должно совпадать с CSS
-}
-    
+        if (details.sides) {
+            leftTitle.textContent = `${details.sides.leftTitle} (${countAll(leftCountries)} страны)`;
+            rightTitle.textContent = `${details.sides.rightTitle} (${countAll(rightCountries)} страны)`;
+        } else {
+            leftTitle.textContent = '';
+            rightTitle.textContent = '';
+        }
+
+        function createCountry(country) {
+            const li = document.createElement('li');
+            li.className = 'country';
+            const name = typeof country === 'string' ? country : (country.name || '');
+            const date = typeof country === 'object' ? country.date : null;
+            const hasDominions = typeof country === 'object' && country.dominions;
+            const flag = flags[name] || 'flags/default.png';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'country-main';
+            wrapper.innerHTML = `
+                <div class="country-info"><img src="${flag}"><span class="country-name">${name}</span></div>
+                <div class="country-meta">
+                    ${date ? `<span class="country-date">${date}</span>` : ''}
+                    ${hasDominions ? '<button class="toggle-btn">[показать]</button>' : ''}
+                </div>`;
+            li.appendChild(wrapper);
+
+            if (hasDominions) {
+                const subList = document.createElement('ul');
+                subList.className = 'dominions hidden';
+                country.dominions.forEach(d => {
+                    const subLi = document.createElement('li');
+                    subLi.innerHTML = `<img src="${flags[d] || 'flags/default.png'}"><span>${d}</span>`;
+                    subList.appendChild(subLi);
+                });
+
+                wrapper.querySelector('.toggle-btn').addEventListener('click', () => {
+                    subList.classList.toggle('hidden');
+                    wrapper.querySelector('.toggle-btn').textContent =
+                        subList.classList.contains('hidden') ? '[показать]' : '[скрыть]';
+                });
+                li.appendChild(subList);
+            }
+            return li;
+        }
+
+        if (details.sides) {
+            leftCountries.forEach(c => leftList.appendChild(createCountry(c)));
+            rightCountries.forEach(c => rightList.appendChild(createCountry(c)));
+        }
+
+        setTimeout(() => {
+            const resultsTitle = document.querySelector('#modalResults h3');
+            const sidesTitle = document.getElementById('modalSidesTitle');
+            const image = document.querySelector('.modal-image');
+            if (!resultsTitle || !sidesTitle || !image) return;
+
+            sidesTitle.parentElement.style.marginTop = '0px';
+            image.style.height = 'auto';
+
+            const resultsTop = resultsTitle.getBoundingClientRect().top;
+            const sidesTop = sidesTitle.getBoundingClientRect().top;
+            const imageTop = image.getBoundingClientRect().top;
+
+            sidesTitle.parentElement.style.marginTop = (resultsTop - sidesTop) + 'px';
+            const calculatedHeight = resultsTop - imageTop - 15;
+            if (calculatedHeight > 100) image.style.height = calculatedHeight + 'px';
+        }, 60);
+    }
+
+    function closePeriodModal() {
+        const modal = document.getElementById('periodModal');
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.querySelector('.page-top').classList.remove('hidden');
+        }, 300);
+    }
+
     // Глобальные функции
-    window.handleResultClick = handleResultClick;
-    window.goToPage = goToPage;
-    window.clearSearch = clearSearch;
-    window.openPeriodModal = openPeriodModal;
     window.closePeriodModal = closePeriodModal;
-    window.handleResultHover = handleResultHover;
-    
+    window.openPeriodModal = openPeriodModal;
+    window.clearSearch = clearSearch;
+    window.handleResultClick = handleResultClick;
+
     // Инициализация
     createTimeline();
     setupSearch();
-    
+
     window.addEventListener('resize', createTimeline);
 });
-
-
-
