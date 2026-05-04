@@ -726,6 +726,7 @@ h1 {
     }
 }
 
+
 .app-scale {
     transform-origin: top center;
     width: 1200px; /* твоя "десктопная ширина" */
