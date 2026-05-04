@@ -1137,6 +1137,25 @@ const flags = {
         }, 300);
     }
 
+  function updateScale() {
+    const baseWidth = 1200; // как в CSS
+    const screenWidth = window.innerWidth;
+
+    let scale = 1;
+
+    if (screenWidth < baseWidth) {
+        scale = screenWidth / baseWidth;
+    }
+
+    const app = document.getElementById('appScale');
+
+    app.style.transform = `scale(${scale})`;
+    app.style.height = `${document.body.scrollHeight * scale}px`;
+}
+
+window.addEventListener('resize', updateScale);
+window.addEventListener('load', updateScale);
+
     // Глобальные функции
     window.closePeriodModal = closePeriodModal;
     window.openPeriodModal = openPeriodModal;
