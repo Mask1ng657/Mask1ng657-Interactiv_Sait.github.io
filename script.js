@@ -1151,20 +1151,4 @@ window.addEventListener('load', updateScale);
     setupSearch();
 
     window.addEventListener('resize', createTimeline);
-
-  function updateScale() {
-    const baseWidth = 1200; // как в CSS
-    const screenWidth = window.innerWidth;
-
-    let scale = 1;
-
-    if (screenWidth < baseWidth) {
-        scale = screenWidth / baseWidth;
-    }
-
-    const app = document.getElementById('appScale');
-
-    app.style.transform = `scale(${scale})`;
-    app.style.height = `${document.body.scrollHeight * scale}px`;
-}
 });
