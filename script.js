@@ -1137,6 +1137,21 @@ const flags = {
         }, 300);
     }
 
+window.addEventListener('resize', updateScale);
+window.addEventListener('load', updateScale);
+
+    // Глобальные функции
+    window.closePeriodModal = closePeriodModal;
+    window.openPeriodModal = openPeriodModal;
+    window.clearSearch = clearSearch;
+    window.handleResultClick = handleResultClick;
+
+    // Инициализация
+    createTimeline();
+    setupSearch();
+
+    window.addEventListener('resize', createTimeline);
+
   function updateScale() {
     const baseWidth = 1200; // как в CSS
     const screenWidth = window.innerWidth;
@@ -1152,19 +1167,4 @@ const flags = {
     app.style.transform = `scale(${scale})`;
     app.style.height = `${document.body.scrollHeight * scale}px`;
 }
-
-window.addEventListener('resize', updateScale);
-window.addEventListener('load', updateScale);
-
-    // Глобальные функции
-    window.closePeriodModal = closePeriodModal;
-    window.openPeriodModal = openPeriodModal;
-    window.clearSearch = clearSearch;
-    window.handleResultClick = handleResultClick;
-
-    // Инициализация
-    createTimeline();
-    setupSearch();
-
-    window.addEventListener('resize', createTimeline);
 });
